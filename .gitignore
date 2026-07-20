@@ -8,3 +8,5 @@ build/
 coverage/
 .vscode/
 .idea/
+*.tsbuildinfo
+dashboard_check.json
