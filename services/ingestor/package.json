@@ -1,0 +1,26 @@
+{
+  "name": "@pulso/ingestor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fetches and normalizes raw price series from public no-key APIs, with in-memory TTL cache and offline fixture fallback.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').mkdirSync('dist/fixtures',{recursive:true});require('fs').copyFileSync('src/fixtures/sample-series.json','dist/fixtures/sample-series.json')\"",
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pulso/shared": "*",
+    "cors": "^2.8.5",
+    "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
