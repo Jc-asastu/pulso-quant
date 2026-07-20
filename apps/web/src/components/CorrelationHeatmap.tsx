@@ -7,8 +7,8 @@ interface CorrelationHeatmapProps {
 
 function cellColor(value: number, isDiagonal: boolean): string {
   if (isDiagonal) return "var(--panel-2)";
-  if (value >= 0) return `rgba(76, 175, 130, ${Math.min(Math.abs(value) * 0.55, 0.55)})`;
-  return `rgba(209, 104, 95, ${Math.min(Math.abs(value) * 0.55, 0.55)})`;
+  if (value >= 0) return `rgba(67, 169, 125, ${Math.min(Math.abs(value) * 0.55, 0.55)})`;
+  return `rgba(212, 100, 92, ${Math.min(Math.abs(value) * 0.55, 0.55)})`;
 }
 
 function textColor(value: number, isDiagonal: boolean): string {

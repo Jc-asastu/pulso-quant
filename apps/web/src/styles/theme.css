@@ -1,5 +1,5 @@
 :root {
-  --bg: #0a0e12;
+  --bg: #070a0d;
   --panel: #0c1116;
   --panel-2: #10161c;
   --hair: #1a222b;
@@ -8,9 +8,9 @@
   --muted: #8a97a5;
   --faint: #4a5560;
 
-  --accent: #d9a441;
-  --up: #4caf82;
-  --down: #d1685f;
+  --accent: #e8b44a;
+  --up: #43a97d;
+  --down: #d4645c;
 
   --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, "SFMono-Regular", Menlo, monospace;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
