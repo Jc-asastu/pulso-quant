@@ -1,0 +1,27 @@
+{
+  "name": "pulso-quant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pulso — a quant finance dashboard. Typed monorepo: ingestion, computation, and edge composition as three separate services behind a shared contract.",
+  "author": "Juan Cruz Maisu",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n shared,ingestor,metrics,gateway,web -c yellow,cyan,magenta,green,blue \"npm:dev:shared\" \"npm run dev -w services/ingestor\" \"npm run dev -w services/metrics\" \"npm run dev -w services/gateway\" \"npm run dev -w apps/web\"",
+    "dev:shared": "npm run build -w packages/shared -- --watch",
+    "build": "npm run build -w packages/shared && npm run build -w services/ingestor && npm run build -w services/metrics && npm run build -w services/gateway && npm run build -w apps/web",
+    "test": "npm run build -w packages/shared && npm run test -w services/ingestor && npm run test -w services/metrics && npm run test -w services/gateway",
+    "lint": "npm run lint -w apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
