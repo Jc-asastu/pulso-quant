@@ -1,0 +1,13 @@
+# Gateway service — built from the monorepo root so the shared contract resolves.
+FROM node:20-slim
+WORKDIR /app
+
+# Install the full workspace (lockfile-exact) so @pulso/shared symlinks correctly.
+COPY . .
+RUN npm ci
+
+# Build only the shared contract and this service.
+RUN npm run build -w packages/shared -w services/gateway
+
+ENV NODE_ENV=production
+CMD ["npm", "run", "start", "-w", "services/gateway"]

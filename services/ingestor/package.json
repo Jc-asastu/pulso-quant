@@ -2,7 +2,7 @@
   "name": "@pulso/ingestor",
   "version": "1.0.0",
   "private": true,
-  "description": "Fetches and normalizes raw price series from public no-key APIs, with in-memory TTL cache and offline fixture fallback.",
+  "description": "Fetches and normalizes raw price series from public no-key APIs, persists them to Postgres, serves reads from a Redis hot cache, with offline fixture fallback.",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -13,12 +13,17 @@
   "dependencies": {
     "@pulso/shared": "*",
     "cors": "^2.8.5",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "ioredis": "^5.11.1",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.20.0",
+    "ioredis-mock": "^8.13.1",
+    "pg-mem": "^3.0.14",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"

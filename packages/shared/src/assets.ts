@@ -5,7 +5,7 @@ import { z } from "zod";
  * free-form string) so the front end, ingestor, and metrics service all
  * agree on what's valid without a round trip.
  */
-export const ASSET_IDS = ["BTC", "ETH", "SOL", "EURUSD", "USDJPY", "USDARS"] as const;
+export const ASSET_IDS = ["BTC", "ETH", "SOL", "XRP", "LINK", "BNB"] as const;
 
 export const AssetIdSchema = z.enum(ASSET_IDS);
 export type AssetId = z.infer<typeof AssetIdSchema>;
@@ -27,7 +27,7 @@ export const ASSET_CATALOG: Record<AssetId, Asset> = {
   BTC: { id: "BTC", label: "Bitcoin", kind: "crypto", sourceId: "bitcoin" },
   ETH: { id: "ETH", label: "Ethereum", kind: "crypto", sourceId: "ethereum" },
   SOL: { id: "SOL", label: "Solana", kind: "crypto", sourceId: "solana" },
-  EURUSD: { id: "EURUSD", label: "EUR / USD", kind: "fx", sourceId: "EUR-USD" },
-  USDJPY: { id: "USDJPY", label: "USD / JPY", kind: "fx", sourceId: "USD-JPY" },
-  USDARS: { id: "USDARS", label: "USD / ARS", kind: "fx", sourceId: "USD-ARS" },
+  XRP: { id: "XRP", label: "XRP", kind: "crypto", sourceId: "ripple" },
+  LINK: { id: "LINK", label: "Chainlink", kind: "crypto", sourceId: "chainlink" },
+  BNB: { id: "BNB", label: "BNB", kind: "crypto", sourceId: "binancecoin" },
 };

@@ -10,3 +10,5 @@ coverage/
 .idea/
 *.tsbuildinfo
 dashboard_check.json
+
+.vercel

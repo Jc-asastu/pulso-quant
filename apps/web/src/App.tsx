@@ -1,173 +1,87 @@
-import { useMemo, useState } from "react";
-import type { AssetId } from "@pulso/shared";
-import { Header } from "./components/Header";
-import { Controls } from "./components/Controls";
-import { MetricTile } from "./components/MetricTile";
-import { TapeRow } from "./components/TapeRow";
-import { CorrelationHeatmap } from "./components/CorrelationHeatmap";
-import { DrawdownChart } from "./components/DrawdownChart";
+import { useEffect, useMemo } from "react";
+import { ASSET_IDS, type AssetId } from "@pulso/shared";
+import { StatusStrip } from "./components/workstation/StatusStrip";
+import { InstrumentWatchlist } from "./components/workstation/InstrumentWatchlist";
+import { CompositeMarketChart } from "./components/workstation/CompositeMarketChart";
+import { RiskStack } from "./components/workstation/RiskStack";
+import { LowerDock } from "./components/workstation/LowerDock";
+import { GuidedTour } from "./components/GuidedTour";
+import { deriveMetrics } from "./lib/analytics";
 import { useDashboard } from "./lib/useDashboard";
-import { formatPercent, formatNumber, signClass } from "./lib/format";
+import { LinkedCrosshairProvider, type LowerView, type TimeWindow, useWorkstation } from "./lib/workstationStore";
 
-const DEFAULT_ASSETS: AssetId[] = ["BTC", "ETH", "SOL", "EURUSD", "USDJPY", "USDARS"];
+const ACTIVE_ASSETS: AssetId[] = [...ASSET_IDS];
+const WINDOW_KEYS: Record<string, TimeWindow> = { "1": 30, "2": 60, "3": 90, "4": 180, "5": 365 };
+const VIEW_KEYS: Record<string, LowerView> = { c: "correlation", d: "drawdown", r: "relative", s: "scatter", e: "events" };
 
 export function App() {
-  const [selectedAssets, setSelectedAssets] = useState<AssetId[]>(DEFAULT_ASSETS);
-  const [days, setDays] = useState(90);
+  return <LinkedCrosshairProvider><TerminalShell /></LinkedCrosshairProvider>;
+}
 
-  const { data, loading, error } = useDashboard(selectedAssets, days);
+function TerminalShell() {
+  const {
+    activeInstrument,
+    timeWindow,
+    setTimeWindow,
+    setActiveInstrument,
+    setLowerView,
+    clearSelection,
+    connectionState,
+  } = useWorkstation();
+  const { data, loading, error, responseMs } = useDashboard(ACTIVE_ASSETS, timeWindow);
 
-  const toggleAsset = (asset: AssetId) => {
-    setSelectedAssets((prev) =>
-      prev.includes(asset) ? prev.filter((a) => a !== asset) : [...prev, asset],
-    );
-  };
+  const activeSeries = data?.series.find((series) => series.asset === activeInstrument)?.points ?? [];
+  const benchmark = data?.series.find((series) => series.asset === "BTC")?.points;
+  const activeMetrics = useMemo(() => activeSeries.length ? deriveMetrics(activeSeries, benchmark) : null, [activeSeries, benchmark]);
 
-  const seriesByAsset = useMemo(() => {
-    const map = new Map<AssetId, (typeof data extends null ? never : NonNullable<typeof data>["series"][number])>();
-    data?.series.forEach((s) => map.set(s.asset, s));
-    return map;
-  }, [data]);
-
-  const metricsByAsset = useMemo(() => {
-    const map = new Map<AssetId, NonNullable<typeof data>["metrics"]["perAsset"][number]>();
-    data?.metrics.perAsset.forEach((m) => map.set(m.asset, m));
-    return map;
-  }, [data]);
-
-  // Portfolio-level summary tiles: average across selected assets.
-  const summary = useMemo(() => {
-    if (!data || data.metrics.perAsset.length === 0) return null;
-    const list = data.metrics.perAsset;
-    const avgVol =
-      list.reduce((acc, m) => {
-        const last = m.rollingVolatility[m.rollingVolatility.length - 1];
-        return acc + (last ? last.value : 0);
-      }, 0) / list.length;
-    const avgSharpe = list.reduce((acc, m) => acc + m.sharpe, 0) / list.length;
-    const worstDrawdown = Math.min(...list.map((m) => m.maxDrawdown));
-    const avgReturn = list.reduce((acc, m) => acc + m.windowReturn, 0) / list.length;
-    return { avgVol, avgSharpe, worstDrawdown, avgReturn };
-  }, [data]);
-
-  // Pick the asset with the deepest drawdown to feature in the drawdown panel.
-  const featuredDrawdownAsset = useMemo(() => {
-    if (!data || data.metrics.perAsset.length === 0) return null;
-    return data.metrics.perAsset.reduce((worst, m) => (m.maxDrawdown < worst.maxDrawdown ? m : worst));
-  }, [data]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, select, textarea, [contenteditable='true']")) return;
+      const selectedWindow = WINDOW_KEYS[event.key];
+      const selectedView = VIEW_KEYS[event.key.toLowerCase()];
+      if (selectedWindow) {
+        event.preventDefault();
+        setTimeWindow(selectedWindow);
+        return;
+      }
+      if (selectedView) {
+        event.preventDefault();
+        setLowerView(selectedView);
+        return;
+      }
+      if (event.key === "Escape") {
+        clearSelection();
+        return;
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        const index = ACTIVE_ASSETS.indexOf(activeInstrument);
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        setActiveInstrument(ACTIVE_ASSETS[(index + direction + ACTIVE_ASSETS.length) % ACTIVE_ASSETS.length]!);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeInstrument, clearSelection, setActiveInstrument, setLowerView, setTimeWindow]);
 
   return (
-    <div className="app-shell">
-      <Header loading={loading} isFallback={data?.isFallback ?? false} generatedAt={data?.generatedAt} />
-
-      <Controls
-        selectedAssets={selectedAssets}
-        onToggleAsset={toggleAsset}
-        days={days}
-        onSetDays={setDays}
-      />
-
-      {error && (
-        <div className="error-banner" role="alert">
-          {error}
+    <div className={`terminal-shell connection-${connectionState}`}>
+      <StatusStrip data={data} loading={loading} error={error} responseMs={responseMs} activeMetrics={activeMetrics} />
+      {error && <div className="system-error" role="alert"><b>FEED ERROR</b><span>{error}</span><em>RETRY ON NEXT CYCLE</em></div>}
+      <main className="workstation-grid">
+        <InstrumentWatchlist data={data} loading={loading} />
+        <div className="analysis-column">
+          <CompositeMarketChart data={data} loading={loading} />
+          <LowerDock data={data} />
         </div>
-      )}
-
-      <section className="grid grid-4" aria-label="Portfolio summary metrics">
-        <MetricTile
-          label="Avg. Volatility (14d ann.)"
-          value={summary ? formatPercent(summary.avgVol, { sign: false }) : "—"}
-          pending={!summary}
-        />
-        <MetricTile
-          label="Avg. Sharpe"
-          value={summary ? formatNumber(summary.avgSharpe) : "—"}
-          sub={summary ? (summary.avgSharpe >= 0 ? "risk-adjusted gain" : "risk-adjusted loss") : undefined}
-          subSign={summary ? signClass(summary.avgSharpe) : "flat"}
-          pending={!summary}
-        />
-        <MetricTile
-          label="Worst Max Drawdown"
-          value={summary ? formatPercent(summary.worstDrawdown, { sign: false }) : "—"}
-          pending={!summary}
-        />
-        <MetricTile
-          label={`Avg. Return (${days}d)`}
-          value={summary ? formatPercent(summary.avgReturn) : "—"}
-          sub={summary ? "vs. window open" : undefined}
-          subSign={summary ? signClass(summary.avgReturn) : "flat"}
-          pending={!summary}
-        />
-      </section>
-
-      <section className="main-row" aria-label="Price tape and correlation">
-        <div className="tape">
-          <h2 className="panel-header">Tape · {days}D</h2>
-          <div className="tape-rows">
-            {selectedAssets.length === 0 && (
-              <div className="cell mono" style={{ color: "var(--faint)", fontSize: 12 }}>
-                No assets selected.
-              </div>
-            )}
-            {selectedAssets.map((asset) => {
-              const series = seriesByAsset.get(asset);
-              const metrics = metricsByAsset.get(asset);
-              if (!series || !metrics) {
-                return (
-                  <div className="tape-row" key={asset}>
-                    <div className="tape-asset">{asset}</div>
-                    <div className="tape-chart mono" style={{ color: "var(--faint)", fontSize: 11 }}>
-                      —
-                    </div>
-                    <div className="tape-right" />
-                  </div>
-                );
-              }
-              return (
-                <TapeRow
-                  key={asset}
-                  asset={asset}
-                  points={series.points}
-                  lastPrice={metrics.lastPrice}
-                  windowReturn={metrics.windowReturn}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="heatmap-panel">
-          <h2 className="panel-header">Correlation · Pearson · {days}D</h2>
-          {data ? (
-            <CorrelationHeatmap correlation={data.metrics.correlation} />
-          ) : (
-            <div className="mono" style={{ color: "var(--faint)", fontSize: 12 }}>
-              —
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="drawdown-panel panel" aria-label="Drawdown">
-        <h2 className="panel-header">
-          Max Drawdown{featuredDrawdownAsset ? ` · ${featuredDrawdownAsset.asset}` : ""}
-        </h2>
-        {featuredDrawdownAsset ? (
-          <DrawdownChart
-            curve={featuredDrawdownAsset.drawdownCurve}
-            maxDrawdown={featuredDrawdownAsset.maxDrawdown}
-          />
-        ) : (
-          <div className="mono" style={{ color: "var(--faint)", fontSize: 12 }}>
-            —
-          </div>
-        )}
-      </section>
-
-      <footer className="footer">
-        <span>Pulso — quant dashboard by Juan Cruz Maisu. Data: CoinGecko, Frankfurter.app (fixtures on rate-limit).</span>
-        <span>Not investment advice.</span>
+        <RiskStack asset={activeInstrument} metrics={activeMetrics} observationCount={activeSeries.length} />
+      </main>
+      <footer className="command-strip" data-tour="commands">
+        <span><kbd>↑↓</kbd> INSTRUMENT</span><span><kbd>1–5</kbd> WINDOW</span><span><kbd>C</kbd> CORR</span><span><kbd>D</kbd> DRAWDOWN</span><span><kbd>R</kbd> RELATIVE</span><span><kbd>S</kbd> RISK/RET</span><span><kbd>E</kbd> EVENTS</span><span><kbd>ESC</kbd> CLEAR</span>
+        <em>DATA: COINGECKO / FRANKFURTER.APP · CLOSE SERIES · NOT INVESTMENT ADVICE</em>
       </footer>
+      <GuidedTour />
     </div>
   );
 }

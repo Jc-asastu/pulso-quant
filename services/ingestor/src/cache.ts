@@ -1,40 +1,45 @@
+import { SeriesWindowSchema, type SeriesWindow } from "@pulso/shared";
+import type { RedisLike } from "./redis.js";
+
 /**
- * Minimal in-memory TTL cache. No external deps, no persistence — this
- * service is stateless between restarts by design; the cache only exists
- * to avoid hammering upstream APIs within a process lifetime.
+ * A hot cache for computed SeriesWindows, backed by Redis. This replaces the
+ * old in-process Map: the ingestor is stateless again, and multiple instances
+ * share one cache. TTL is delegated to Redis via PX.
  */
-export class TtlCache<T> {
-  private store = new Map<string, { value: T; expiresAt: number }>();
+export interface SeriesCache {
+  get(key: string): Promise<SeriesWindow | undefined>;
+  set(key: string, value: SeriesWindow, ttlMs?: number): Promise<void>;
+  del(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
 
-  constructor(private readonly ttlMs: number) {}
+const NS = "series:";
 
-  get(key: string): T | undefined {
-    const entry = this.store.get(key);
-    if (!entry) return undefined;
-    if (Date.now() >= entry.expiresAt) {
-      this.store.delete(key);
-      return undefined;
-    }
-    return entry.value;
-  }
+export function createSeriesCache(redis: RedisLike, defaultTtlMs: number): SeriesCache {
+  return {
+    async get(key) {
+      const raw = await redis.get(NS + key);
+      if (!raw) return undefined;
+      try {
+        // Validate on the way out: a stale or corrupt entry reads as a miss
+        // rather than poisoning a response.
+        const parsed = SeriesWindowSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data : undefined;
+      } catch {
+        return undefined;
+      }
+    },
 
-  set(key: string, value: T): void {
-    this.store.set(key, { value, expiresAt: Date.now() + this.ttlMs });
-  }
+    async set(key, value, ttlMs) {
+      await redis.set(NS + key, JSON.stringify(value), "PX", ttlMs ?? defaultTtlMs);
+    },
 
-  has(key: string): boolean {
-    return this.get(key) !== undefined;
-  }
+    async del(key) {
+      await redis.del(NS + key);
+    },
 
-  delete(key: string): void {
-    this.store.delete(key);
-  }
-
-  clear(): void {
-    this.store.clear();
-  }
-
-  size(): number {
-    return this.store.size;
-  }
+    async clear() {
+      await redis.flushdb();
+    },
+  };
 }

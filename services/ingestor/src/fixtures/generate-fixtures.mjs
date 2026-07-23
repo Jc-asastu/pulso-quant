@@ -46,9 +46,9 @@ const specs = {
   BTC: { seed: 1001, start: 42000, driftPerDay: 0.0015, volPerDay: 0.028 },
   ETH: { seed: 1002, start: 2200, driftPerDay: 0.0012, volPerDay: 0.032 },
   SOL: { seed: 1003, start: 95, driftPerDay: 0.002, volPerDay: 0.045 },
-  EURUSD: { seed: 1004, start: 1.085, driftPerDay: 0.00005, volPerDay: 0.004 },
-  USDJPY: { seed: 1005, start: 157.2, driftPerDay: 0.0001, volPerDay: 0.0035 },
-  USDARS: { seed: 1006, start: 1280, driftPerDay: 0.0022, volPerDay: 0.006 },
+  XRP: { seed: 1004, start: 0.52, driftPerDay: 0.0016, volPerDay: 0.045 },
+  LINK: { seed: 1005, start: 13.5, driftPerDay: 0.0015, volPerDay: 0.05 },
+  BNB: { seed: 1006, start: 300, driftPerDay: 0.0013, volPerDay: 0.03 },
 };
 
 const out = {};

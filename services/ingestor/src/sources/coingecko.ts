@@ -18,8 +18,12 @@ export async function fetchCoingeckoSeries(
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.upstreamTimeoutMs);
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (config.coingeckoApiKey) {
+    headers["x-cg-demo-api-key"] = config.coingeckoApiKey;
+  }
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { signal: controller.signal, headers });
     if (!res.ok) {
       throw new Error(`CoinGecko ${coinId} responded ${res.status}`);
     }
