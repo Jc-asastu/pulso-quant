@@ -105,7 +105,8 @@ export function windowReturn(points: readonly PricePoint[]): number {
  * Returns 0 if either series has zero variance or lengths mismatch/are too short.
  */
 export function pearsonCorrelation(a: readonly number[], b: readonly number[]): number {
-  const n = Math.min(a.length, b.length);
+  if (a.length !== b.length) return 0;
+  const n = a.length;
   if (n < 2) return 0;
   const xs = a.slice(0, n);
   const ys = b.slice(0, n);

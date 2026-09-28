@@ -159,6 +159,11 @@ describe("pearsonCorrelation", () => {
   it("returns 0 when one series has zero variance", () => {
     expect(pearsonCorrelation([1, 2, 3], [5, 5, 5])).toBe(0);
   });
+
+  it("returns 0 rather than truncating series of different lengths", () => {
+    expect(pearsonCorrelation([1, 2, 3], [2, 4, 6, 8])).toBe(0);
+    expect(pearsonCorrelation([1, 2, 3, 4], [2, 4, 6])).toBe(0);
+  });
 });
 
 describe("correlationMatrix", () => {
