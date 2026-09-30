@@ -24,8 +24,8 @@ export function createApp() {
     const assetsParam = String(req.query.assets ?? config.defaultAssets.join(","));
     const daysParam = Number(req.query.days ?? config.defaultDays);
 
-    if (!Number.isFinite(daysParam) || daysParam <= 0 || daysParam > 365) {
-      res.status(400).json(err("BAD_REQUEST", "query param 'days' must be a number between 1 and 365"));
+    if (!Number.isInteger(daysParam) || daysParam <= 0 || daysParam > 365) {
+      res.status(400).json(err("BAD_REQUEST", "query param 'days' must be an integer between 1 and 365"));
       return;
     }
 

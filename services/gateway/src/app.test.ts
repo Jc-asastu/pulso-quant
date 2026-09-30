@@ -59,6 +59,15 @@ describe("GET /api/dashboard", () => {
     expect(res.body.ok).toBe(false);
   });
 
+  it("rejects fractional days before calling upstream services", async () => {
+    const app = createApp();
+    const res = await request(app).get("/api/dashboard?assets=BTC&days=1.5");
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("BAD_REQUEST");
+    expect(fetchSeries).not.toHaveBeenCalled();
+    expect(fetchMetrics).not.toHaveBeenCalled();
+  });
+
   it("maps an upstream failure to a 502 typed error envelope", async () => {
     vi.mocked(fetchSeries).mockRejectedValue(new Error("boom"));
     vi.mocked(fetchMetrics).mockResolvedValue(fakeMetrics);
