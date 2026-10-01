@@ -231,8 +231,8 @@ export function deriveEvents(asset: AssetId, points: readonly PricePoint[]): Mar
   if (metrics.volatilityPercentile !== null && metrics.volatilityPercentile >= 80) {
     events.push({ id: `${asset}-vol`, t: latestPoint.t, asset, type: "warning", code: "VOL REGIME SHIFT", detail: `PCTL ${metrics.volatilityPercentile.toFixed(0)} · HIGH` });
   }
-  const trailingLow = Math.min(...points.slice(-Math.min(30, points.length)).map((point) => point.price));
-  if (latestPoint.price <= trailingLow) {
+  const priorLow = Math.min(...points.slice(-30, -1).map((point) => point.price));
+  if (latestPoint.price < priorLow) {
     events.push({ id: `${asset}-low`, t: latestPoint.t, asset, type: "risk", code: "NEW 30D LOW", detail: `${latestPoint.price.toFixed(latestPoint.price >= 100 ? 2 : 4)}` });
   }
   if (previousDrawdown < 0 && latestDrawdown === 0) {
