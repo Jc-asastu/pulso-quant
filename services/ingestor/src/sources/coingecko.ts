@@ -1,4 +1,4 @@
-import type { PricePoint } from "@pulso/shared";
+import { PricePointSchema, type PricePoint } from "@pulso/shared";
 import { config } from "../config.js";
 
 interface MarketChartResponse {
@@ -31,7 +31,7 @@ export async function fetchCoingeckoSeries(
     if (!Array.isArray(body.prices)) {
       throw new Error(`CoinGecko ${coinId} returned malformed payload`);
     }
-    return body.prices.map(([t, price]) => ({ t, price }));
+    return PricePointSchema.array().parse(body.prices.map(([t, price]) => ({ t, price })));
   } finally {
     clearTimeout(timeout);
   }
