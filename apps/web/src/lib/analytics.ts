@@ -119,7 +119,9 @@ export function deriveMetrics(points: readonly PricePoint[], benchmark?: readonl
   const volatilityDelta30 = volatility !== null && previousVolatility !== null ? volatility - previousVolatility : null;
   const volatilityPercentile = volatility === null || !volatilitySeries.length
     ? null
-    : (volatilitySeries.filter((value) => value <= volatility).length / volatilitySeries.length) * 100;
+    : ((volatilitySeries.filter((value) => value < volatility).length
+      + volatilitySeries.filter((value) => value === volatility).length / 2)
+      / volatilitySeries.length) * 100;
   const returnMean = mean(logReturns);
   const returnDeviation = stdDev(logReturns);
   const sharpe = logReturns.length >= 3 && returnDeviation > 0
