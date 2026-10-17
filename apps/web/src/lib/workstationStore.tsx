@@ -31,6 +31,7 @@ interface WorkstationContextValue extends WorkstationState {
   setDisplayMode: (mode: DisplayMode) => void;
   setLowerView: (view: LowerView) => void;
   setSelectedPair: (pair: [AssetId, AssetId] | null) => void;
+  selectCorrelationPair: (left: AssetId, right: AssetId) => void;
   clearSelection: () => void;
 }
 
@@ -61,6 +62,20 @@ export function LinkedCrosshairProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const selectCorrelationPair = (left: AssetId, right: AssetId) => {
+    if (left === right) return;
+    setSelectedPair([left, right]);
+    setActiveInstrumentState(left);
+    setComparisonInstruments((current) => {
+      const withoutActive = current.filter((asset) => asset !== left);
+      if (withoutActive.includes(right)) return withoutActive;
+      if (withoutActive.length >= MAX_COMPARISONS) {
+        return [...withoutActive.slice(0, MAX_COMPARISONS - 1), right];
+      }
+      return [...withoutActive, right];
+    });
+  };
+
   const clearComparisons = () => setComparisonInstruments([]);
 
   const value = useMemo<WorkstationContextValue>(() => ({
@@ -83,6 +98,7 @@ export function LinkedCrosshairProvider({ children }: { children: ReactNode }) {
     setDisplayMode,
     setLowerView,
     setSelectedPair,
+    selectCorrelationPair,
     clearSelection: () => {
       setComparisonInstruments([]);
       setSelectedPair(null);

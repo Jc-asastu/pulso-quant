@@ -44,7 +44,7 @@ function cellColor(value: number, diagonal: boolean): string {
 }
 
 function CorrelationMatrix({ data }: LowerDockProps) {
-  const { activeInstrument, setActiveInstrument, toggleComparison, selectedPair, setSelectedPair } = useWorkstation();
+  const { activeInstrument, selectCorrelationPair, selectedPair } = useWorkstation();
   const correlation = data?.metrics.correlation;
   if (!correlation?.assets.length) return <EmptyView text="CORRELATION REQUIRES ALIGNED RETURN SERIES" />;
   const activeIndex = correlation.assets.indexOf(activeInstrument);
@@ -57,9 +57,7 @@ function CorrelationMatrix({ data }: LowerDockProps) {
   });
   const selectPair = (left: AssetId, right: AssetId) => {
     if (left === right) return;
-    setSelectedPair([left, right]);
-    setActiveInstrument(left);
-    toggleComparison(right);
+    selectCorrelationPair(left, right);
   };
   return (
     <div className="correlation-layout">
