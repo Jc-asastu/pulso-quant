@@ -39,7 +39,20 @@ export function createSeriesCache(redis: RedisLike, defaultTtlMs: number): Serie
     },
 
     async clear() {
-      await redis.flushdb();
+      const keys = new Set<string>();
+      let cursor = "0";
+      do {
+        const [nextCursor, page] = await redis.scan(cursor, "MATCH", `${NS}*`, "COUNT", 100);
+        for (const key of page) {
+          if (key.startsWith(NS)) keys.add(key);
+        }
+        cursor = nextCursor;
+      } while (cursor !== "0");
+
+      const matched = [...keys];
+      for (let i = 0; i < matched.length; i += 100) {
+        await redis.del(...matched.slice(i, i + 100));
+      }
     },
   };
 }

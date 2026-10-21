@@ -9,7 +9,7 @@ export interface RedisLike {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, mode: "PX", ttl: number): Promise<unknown>;
   del(...keys: string[]): Promise<unknown>;
-  flushdb(): Promise<unknown>;
+  scan(cursor: string, match: "MATCH", pattern: string, count: "COUNT", size: number): Promise<[string, string[]]>;
 }
 
 let client: Redis | undefined;

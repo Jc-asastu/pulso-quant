@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import RedisMock from "ioredis-mock";
 import { createSeriesCache, type SeriesCache } from "./cache.js";
 import type { SeriesWindow } from "@pulso/shared";
@@ -50,12 +50,30 @@ describe("SeriesCache (Redis-backed)", () => {
     expect(await cache.get("BTC:3")).toBeUndefined();
   });
 
-  it("clear removes everything", async () => {
+  it("clear removes only series entries", async () => {
     await cache.set("BTC:3", sample);
     await cache.set("ETH:3", { ...sample, asset: "ETH" });
+    await redis.set("shared:sentinel", "keep");
     await cache.clear();
     expect(await cache.get("BTC:3")).toBeUndefined();
     expect(await cache.get("ETH:3")).toBeUndefined();
+    expect(await redis.get("shared:sentinel")).toBe("keep");
+  });
+
+  it("clear visits every scan page before deleting series entries", async () => {
+    await cache.set("BTC:3", sample);
+    await cache.set("ETH:3", { ...sample, asset: "ETH" });
+    await redis.set("shared:sentinel", "keep");
+    const scan = vi.spyOn(redis, "scan")
+      .mockResolvedValueOnce(["42", ["series:BTC:3"]])
+      .mockResolvedValueOnce(["0", ["series:ETH:3"]]);
+
+    await cache.clear();
+
+    expect(scan).toHaveBeenCalledTimes(2);
+    expect(await cache.get("BTC:3")).toBeUndefined();
+    expect(await cache.get("ETH:3")).toBeUndefined();
+    expect(await redis.get("shared:sentinel")).toBe("keep");
   });
 
   it("expires an entry after its PX ttl", async () => {
