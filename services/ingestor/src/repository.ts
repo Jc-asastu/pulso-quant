@@ -24,8 +24,12 @@ export function createSeriesRepository(db: Queryable): SeriesRepository {
   return {
     async upsertPoints(asset, points) {
       if (points.length === 0) return;
+      // PostgreSQL cannot update the same (asset, t) row twice in one INSERT.
+      // Keep the first-seen timestamp order and the last price for each timestamp.
+      const pointsByTimestamp = new Map<number, PricePoint>();
+      for (const point of points) pointsByTimestamp.set(point.t, point);
       const values: unknown[] = [];
-      const tuples = points.map((p, i) => {
+      const tuples = [...pointsByTimestamp.values()].map((p, i) => {
         const b = i * 3;
         values.push(asset, p.t, p.price);
         return `($${b + 1}, $${b + 2}, $${b + 3})`;

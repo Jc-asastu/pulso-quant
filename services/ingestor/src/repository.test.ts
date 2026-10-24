@@ -56,6 +56,27 @@ describe("SeriesRepository (Postgres)", () => {
     expect((await repo.coverage("SOL")).count).toBe(1);
   });
 
+  it("submits each timestamp once per batch with the last price", async () => {
+    const queries: { text: string; params?: unknown[] }[] = [];
+    const recordingDb: Queryable = {
+      query: async (text, params) => {
+        queries.push({ text, params });
+        return { rows: [] };
+      },
+    };
+    const recordingRepo = createSeriesRepository(recordingDb);
+
+    await recordingRepo.upsertPoints("BTC", [
+      { t: 1000, price: 10 },
+      { t: 2000, price: 20 },
+      { t: 1000, price: 30 },
+    ]);
+
+    expect(queries).toHaveLength(1);
+    expect(queries[0]?.params).toEqual(["BTC", 1000, 30, "BTC", 2000, 20]);
+    expect(queries[0]?.text).toContain("VALUES ($1, $2, $3), ($4, $5, $6) ");
+  });
+
   it("coverage reports count and the latest timestamp", async () => {
     await repo.upsertPoints("BTC", [
       { t: 1000, price: 1 },
